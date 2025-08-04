@@ -4,12 +4,12 @@ frontend http-in
     redirect scheme https code 301 if !{ ssl_fc }
 
 frontend https-in
-    bind *:443 ssl crt /etc/letsencrypt/live/www.aysuarex.tech/aysuarex.pem
+    bind *:443 ssl crt /etc/letsencrypt/live/www.mdhieu.tech/mdhieu.pem
     mode http
     default_backend webservers
 
 backend webservers
     balance roundrobin
     option forwardfor
-    server 19018-web-01 44.210.150.159:80 check
-    server 19018-web-02 35.173.47.15:80 check
+    server 6661-web-01 52.91.19.144:80 check
+    server 6661-web-02 13.221.66.135:80 check
