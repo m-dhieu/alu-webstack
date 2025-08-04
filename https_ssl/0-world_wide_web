@@ -1,16 +1,37 @@
 #!/usr/bin/env bash
-# Take a subdomain and a domain and return information about the subdomain
+# This script displays DNS A record info for subdomains of a domain.
 
-print_info () {
-    dig "$1" | grep -A1 'ANSWER SECTION:' | sed -r "s/$1./$2/g" | awk -F" " ' NR==2 { print "The subdomain " $1 " is a " $4 " record and points to " $5 }'
+get_subdomain_info() {
+  local domain=$1
+  local subdomain=$2
+
+  # Run dig to get the A record for the subdomain
+  # Extract record type and destination IP using awk
+  read -r record_type dest <<< $(dig +noall +answer ${subdomain}.${domain} | awk '/IN\s+A/ {print $4, $5}')
+
+  # If dig outputs nothing, fallback to just get record type and IP
+  if [ -z "$record_type" ] || [ -z "$dest" ]; then
+    # Just find the record type and IP address
+    # This fallback is for robustness; main approach is above.
+    dest=$(dig +short ${subdomain}.${domain})
+    record_type="A"
+  fi
+
+  echo "The subdomain $subdomain is a $record_type record and points to $dest"
 }
 
-if [ "$#" -eq 2 ]
-then
-    print_info "$2.$1" "$2"
+domain=$1
+subdomain=$2
+
+if [ -z "$domain" ]; then
+  echo "Usage: $0 <domain> [subdomain]"
+  exit 1
+fi
+
+if [ -z "$subdomain" ]; then
+  for sub in www lb-01 web-01 web-02; do
+    get_subdomain_info "$domain" "$sub"
+  done
 else
-    print_info "www.$1" "www"
-    print_info "lb-01.$1" "lb-01"
-    print_info "web-01.$1" "web-01"
-    print_info "web-02.$1" "web-02"
+  get_subdomain_info "$domain" "$subdomain"
 fi
