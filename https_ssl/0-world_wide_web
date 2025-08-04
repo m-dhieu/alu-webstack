@@ -36,3 +36,4 @@ if [[ -z $subdomain ]]; then
 else
   display_record "$domain" "$subdomain"
 fi
+
