@@ -1,37 +1,38 @@
 #!/usr/bin/env bash
-# This script displays DNS A record info for subdomains of a domain.
+# Display DNS record info for specified subdomains of a domain
 
-get_subdomain_info() {
+function display_record() {
   local domain=$1
   local subdomain=$2
+  local full_domain="${subdomain}.${domain}"
 
-  # Run dig to get the A record for the subdomain
-  # Extract record type and destination IP using awk
-  read -r record_type dest <<< $(dig +noall +answer ${subdomain}.${domain} | awk '/IN\s+A/ {print $4, $5}')
-
-  # If dig outputs nothing, fallback to just get record type and IP
-  if [ -z "$record_type" ] || [ -z "$dest" ]; then
-    # Just find the record type and IP address
-    # This fallback is for robustness; main approach is above.
-    dest=$(dig +short ${subdomain}.${domain})
-    record_type="A"
+  # Query DNS records (A or CNAME) using dig, get concise ANSWER SECTION
+  local answer=$(dig +nocmd "$full_domain" A +noall +answer)
+  
+  if [[ -z $answer ]]; then
+    echo "No DNS record found for subdomain $subdomain"
+    return
   fi
 
-  echo "The subdomain $subdomain is a $record_type record and points to $dest"
+  # Extract record type and destination
+  local record_type=$(echo "$answer" | awk '{print $4}')
+  local destination=$(echo "$answer" | awk '{print $5}')
+  
+  echo "The subdomain $subdomain is a $record_type record and points to $destination"
 }
 
 domain=$1
 subdomain=$2
 
-if [ -z "$domain" ]; then
+if [[ -z $domain ]]; then
   echo "Usage: $0 <domain> [subdomain]"
   exit 1
 fi
 
-if [ -z "$subdomain" ]; then
-  for sub in www lb-01 web-01 web-02; do
-    get_subdomain_info "$domain" "$sub"
+if [[ -z $subdomain ]]; then
+  for sd in www lb-01 web-01 web-02; do
+    display_record "$domain" "$sd"
   done
 else
-  get_subdomain_info "$domain" "$subdomain"
+  display_record "$domain" "$subdomain"
 fi
